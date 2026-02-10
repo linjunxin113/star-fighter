@@ -1,6 +1,6 @@
 import { Entity } from './entity.js';
 import { Bullet } from './bullet.js';
-import { Renderer, darkenColor } from '../renderer.js';
+import { Renderer, darkenColor, lightenColor } from '../renderer.js';
 
 export class Boss extends Entity {
     constructor(game, data) {
@@ -109,6 +109,7 @@ export class Boss extends Entity {
 
     render(ctx) {
         const { x, y, size, color, glowColor, time } = this;
+        const light = lightenColor(color, 0.3);
         ctx.save();
 
         // 发光
@@ -130,9 +131,10 @@ export class Boss extends Entity {
         ctx.lineTo(x - size * 0.4, y - size * 0.7);
         ctx.closePath();
         const bodyGrad = ctx.createLinearGradient(x, y - size, x, y + size * 0.7);
-        bodyGrad.addColorStop(0, glowColor);
-        bodyGrad.addColorStop(0.4, color);
-        bodyGrad.addColorStop(1, darkenColor(color, 0.3));
+        bodyGrad.addColorStop(0, light);
+        bodyGrad.addColorStop(0.3, glowColor);
+        bodyGrad.addColorStop(0.6, color);
+        bodyGrad.addColorStop(1, darkenColor(color, 0.4));
         ctx.fillStyle = bodyGrad;
         ctx.fill();
         ctx.strokeStyle = glowColor;
@@ -147,15 +149,75 @@ export class Boss extends Entity {
             ctx.globalAlpha = 1;
         }
 
-        // 装甲板纹理
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        // 高光条（舰体上方 30%）
+        ctx.save();
+        ctx.globalAlpha = 0.1;
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x + size * 0.4, y - size * 0.7);
+        ctx.lineTo(x + size * 0.8, y - size * 0.3);
+        ctx.lineTo(x - size * 0.8, y - size * 0.3);
+        ctx.lineTo(x - size * 0.4, y - size * 0.7);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+
+        // 镜面反射点
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath();
+        ctx.ellipse(x - size * 0.2, y - size * 0.5, size * 0.12, size * 0.06, -0.3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+
+        // 装甲板纹理（更多面板线）
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 0.5;
-        for (let i = -2; i <= 2; i++) {
+        for (let i = -3; i <= 3; i++) {
             ctx.beginPath();
-            ctx.moveTo(x + i * size * 0.25, y - size * 0.6);
-            ctx.lineTo(x + i * size * 0.25, y + size * 0.5);
+            ctx.moveTo(x + i * size * 0.2, y - size * 0.7);
+            ctx.lineTo(x + i * size * 0.2, y + size * 0.55);
             ctx.stroke();
         }
+        // 横向面板线
+        for (let j = -2; j <= 2; j++) {
+            ctx.beginPath();
+            ctx.moveTo(x - size * 0.9, y + j * size * 0.2);
+            ctx.lineTo(x + size * 0.9, y + j * size * 0.2);
+            ctx.stroke();
+        }
+
+        // 铆钉阵列
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        const rivetPositions = [
+            [-0.6, -0.4], [0.6, -0.4], [-0.6, 0.2], [0.6, 0.2],
+            [-0.3, -0.6], [0.3, -0.6], [-0.3, 0.4], [0.3, 0.4],
+            [0, -0.8], [0, 0.35],
+        ];
+        for (const [rx, ry] of rivetPositions) {
+            ctx.beginPath();
+            ctx.arc(x + rx * size, y + ry * size, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 能量导管（连接核心到炮台的发光线条，脉动动画）
+        const conduitPulse = 0.3 + 0.3 * Math.sin(time * 5);
+        ctx.save();
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = conduitPulse;
+        for (const side of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.quadraticCurveTo(
+                x + side * size * 0.4, y - size * 0.1,
+                x + side * size * 0.85, y
+            );
+            ctx.stroke();
+        }
+        ctx.restore();
 
         // 左右炮台
         const turretSpeed = 1 + this.phase;
@@ -163,15 +225,20 @@ export class Boss extends Entity {
             ctx.save();
             ctx.translate(x + side * size * 0.85, y);
             ctx.rotate(time * turretSpeed * side);
+            // 炮台底座
+            ctx.beginPath();
+            ctx.arc(0, 0, 6, 0, Math.PI * 2);
+            ctx.fillStyle = darkenColor(color, 0.5);
+            ctx.fill();
             // 炮管
             ctx.fillStyle = darkenColor(color, 0.6);
-            ctx.fillRect(-4, -12, 8, 24);
+            ctx.fillRect(-4, -14, 8, 28);
             ctx.fillStyle = glowColor;
-            ctx.fillRect(-2, -14, 4, 4);
+            ctx.fillRect(-2, -16, 4, 4);
             // 炮口发光
             ctx.globalAlpha = 0.5 + 0.4 * Math.sin(time * 6);
             ctx.beginPath();
-            ctx.arc(0, -14, 3, 0, Math.PI * 2);
+            ctx.arc(0, -16, 3.5, 0, Math.PI * 2);
             ctx.fillStyle = '#ffffff';
             ctx.fill();
             ctx.globalAlpha = 1;
@@ -208,17 +275,40 @@ export class Boss extends Entity {
         ctx.globalAlpha = 1;
         ctx.restore();
 
-        // 引擎喷口（底部）
-        for (const ox of [-size * 0.3, 0, size * 0.3]) {
-            const flameLen = 8 + Math.sin(time * 15 + ox) * 4;
+        // 护盾气泡效果（低 HP 时闪烁的半透明球）
+        const hpRatio = this.hp / this.maxHp;
+        if (hpRatio < 0.5) {
+            const shieldAlpha = (0.1 + 0.15 * Math.sin(time * 8)) * (1 - hpRatio);
+            ctx.save();
+            ctx.globalAlpha = shieldAlpha;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // 内层
+            ctx.beginPath();
+            ctx.arc(x, y, size * 1.15, 0, Math.PI * 2);
+            const shieldGrad = ctx.createRadialGradient(x, y, size * 0.5, x, y, size * 1.15);
+            shieldGrad.addColorStop(0, 'transparent');
+            shieldGrad.addColorStop(1, glowColor);
+            ctx.fillStyle = shieldGrad;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 引擎喷口（底部）- 增大
+        for (const ox of [-size * 0.4, -size * 0.1, size * 0.1, size * 0.4]) {
+            const flameLen = 12 + Math.sin(time * 15 + ox) * 6;
             const grad = ctx.createLinearGradient(x + ox, y + size * 0.5, x + ox, y + size * 0.5 + flameLen);
-            grad.addColorStop(0, glowColor);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.3, glowColor);
             grad.addColorStop(1, 'transparent');
             ctx.globalAlpha = 0.6;
             ctx.beginPath();
-            ctx.moveTo(x + ox - 4, y + size * 0.5);
+            ctx.moveTo(x + ox - 5, y + size * 0.5);
             ctx.lineTo(x + ox, y + size * 0.5 + flameLen);
-            ctx.lineTo(x + ox + 4, y + size * 0.5);
+            ctx.lineTo(x + ox + 5, y + size * 0.5);
             ctx.closePath();
             ctx.fillStyle = grad;
             ctx.fill();

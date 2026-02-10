@@ -14,7 +14,7 @@ export class PowerUpSystem {
         if (Math.random() < dropRate) {
             const types = Object.keys(POWERUP_TYPES);
             // 加权随机：火力升级和治疗更常见
-            const weights = [30, 15, 12, 8, 20, 15]; // fireup, spread, shield, bomb, heal, magnet
+            const weights = [40, 15, 12, 8, 20, 15]; // fireup, spread, shield, bomb, heal, magnet
             const total = weights.reduce((a, b) => a + b, 0);
             let r = Math.random() * total;
             let type = types[0];
@@ -81,7 +81,7 @@ export class PowerUpSystem {
                 this._clearScreen();
                 break;
             case 'heal':
-                player.hp = Math.min(player.hp + 2, player.maxHp);
+                player.hp = Math.min(player.hp + 3, player.maxHp);
                 break;
             case 'magnet':
                 player.magnet = true;

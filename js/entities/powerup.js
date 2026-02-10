@@ -3,11 +3,11 @@ import { Renderer, darkenColor } from '../renderer.js';
 
 export const POWERUP_TYPES = {
     fireup: { color: '#ff6d00', label: 'F', duration: 0 },
-    spread: { color: '#ffab00', label: 'S', duration: 8 },
-    shield: { color: '#40c4ff', label: 'D', duration: 10 },
+    spread: { color: '#ffab00', label: 'S', duration: 15 },
+    shield: { color: '#40c4ff', label: 'D', duration: 20 },
     bomb:   { color: '#ff1744', label: 'B', duration: 0 },
     heal:   { color: '#69f0ae', label: '+', duration: 0 },
-    magnet: { color: '#e040fb', label: 'M', duration: 10 },
+    magnet: { color: '#e040fb', label: 'M', duration: 15 },
 };
 
 export class PowerUp extends Entity {
@@ -22,7 +22,7 @@ export class PowerUp extends Entity {
         this.hitH = 24;
         this.speed = 60;
         this.time = 0;
-        this.lifetime = 8;
+        this.lifetime = 12;
     }
 
     update(dt) {

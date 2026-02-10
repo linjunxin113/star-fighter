@@ -173,16 +173,16 @@ export class Game {
                         this.uiManager.hud.addFloatingText(this.boss.x, this.boss.y, `+${this.boss.scoreValue}`, '#ffab00', 28);
                     }
                     this.particleSystem.createExplosion(
-                        this.boss.x, this.boss.y, 80, '#ff6600'
+                        this.boss.x, this.boss.y, 120, '#ff6600'
                     );
-                    this.particleSystem.createDebris(this.boss.x, this.boss.y, 20, this.boss.color);
+                    this.particleSystem.createDebris(this.boss.x, this.boss.y, 30, this.boss.color);
                     this.particleSystem.createPhaseTransition(this.boss.x, this.boss.y, '#ffffff');
                     // Boss 掉落多个道具
                     this.powerupSystem.spawnBossDrops(this.boss.x, this.boss.y);
                     if (this.effects) {
-                        this.effects.shake(8, 0.5);
+                        this.effects.shake(12, 0.8);
                         this.effects.flash('#ffffff', 0.4);
-                        this.effects.slowMo(0.15, 1.5);
+                        this.effects.slowMo(0.15, 2.5);
                         this.effects.hitStop(0.1);
                     }
                     if (this.audio) this.audio.playExplosionLarge();
@@ -280,15 +280,18 @@ export class Game {
                     if (e.hp <= 0) {
                         e.alive = false;
                         this.scoreSystem.addKill(e.scoreValue);
-                        this.particleSystem.createExplosion(e.x, e.y, 15, e.color);
-                        this.particleSystem.createDebris(e.x, e.y, 4, e.color);
+                        this.particleSystem.createExplosion(e.x, e.y, 25, e.color);
+                        this.particleSystem.createDebris(e.x, e.y, 6, e.color);
                         // Elite enemies get extra shockwave
                         if (e.type === 'elite') {
                             this.particleSystem.createEnergyWave(e.x, e.y, e.color);
                         }
                         this.powerupSystem.trySpawn(e.x, e.y, e.dropRate);
                         this.enemies.splice(j, 1);
-                        if (this.effects) this.effects.shake(2, 0.1);
+                        if (this.effects) {
+                            this.effects.shake(2, 0.1);
+                            this.effects.slowMo(0.7, 0.15);
+                        }
                         if (this.audio) this.audio.playExplosionSmall();
                         // Floating score text
                         const pts = Math.floor(e.scoreValue * this.scoreSystem.multiplier);

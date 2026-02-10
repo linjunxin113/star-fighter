@@ -19,12 +19,12 @@ export class Player extends Entity {
         this.fireRate = cfg.fireRate;
         this.fireTimer = 0;
         this.bulletDamage = cfg.bulletDamage;
-        this.fireLevel = 1;
-        this.maxFireLevel = 5;
+        this.fireLevel = 2;
+        this.maxFireLevel = 8;
 
         this.invincible = false;
         this.invincibleTimer = 0;
-        this.invincibleDuration = 1.5;
+        this.invincibleDuration = 2.5;
         this.blinkTimer = 0;
 
         this.shield = false;
@@ -99,16 +99,52 @@ export class Player extends Entity {
         c.lineTo(cx - 3, cy - 10);
         c.closePath();
         const cockpit = c.createLinearGradient(cx, cy - 18, cx, cy - 6);
-        cockpit.addColorStop(0, 'rgba(150,220,255,0.9)');
+        cockpit.addColorStop(0, 'rgba(150,220,255,0.95)');
+        cockpit.addColorStop(0.4, 'rgba(200,240,255,0.8)');
         cockpit.addColorStop(1, 'rgba(50,120,200,0.6)');
         c.fillStyle = cockpit;
         c.fill();
+        // 驾驶舱高光
+        c.save();
+        c.globalAlpha = 0.5;
+        c.beginPath();
+        c.ellipse(cx - 0.5, cy - 14, 1.2, 2.5, -0.2, 0, Math.PI * 2);
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
+
+        // 高光条（机体上方）
+        c.save();
+        c.globalAlpha = 0.08;
+        c.beginPath();
+        c.moveTo(cx, cy - 22);
+        c.lineTo(cx + 4, cy - 16);
+        c.lineTo(cx + 6, cy - 8);
+        c.lineTo(cx - 6, cy - 8);
+        c.lineTo(cx - 4, cy - 16);
+        c.closePath();
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
+
+        // 面板线（中线 + 横线）
+        c.strokeStyle = 'rgba(255,255,255,0.12)';
+        c.lineWidth = 0.4;
+        c.beginPath(); c.moveTo(cx, cy - 20); c.lineTo(cx, cy + 12); c.stroke();
+        c.beginPath(); c.moveTo(cx - 5, cy); c.lineTo(cx + 5, cy); c.stroke();
+        c.beginPath(); c.moveTo(cx - 4, cy + 6); c.lineTo(cx + 4, cy + 6); c.stroke();
 
         // 机翼线
         c.strokeStyle = 'rgba(255,255,255,0.15)';
         c.lineWidth = 0.5;
         c.beginPath(); c.moveTo(cx + 6, cy - 6); c.lineTo(cx + 18, cy + 5); c.stroke();
         c.beginPath(); c.moveTo(cx - 6, cy - 6); c.lineTo(cx - 18, cy + 5); c.stroke();
+
+        // 铆钉点
+        c.fillStyle = 'rgba(255,255,255,0.25)';
+        for (const [rx, ry] of [[cx-3, cy+2], [cx+3, cy+2], [cx-10, cy+4], [cx+10, cy+4], [cx, cy+10]]) {
+            c.beginPath(); c.arc(rx, ry, 0.6, 0, Math.PI * 2); c.fill();
+        }
     }
 
     _drawSpeedShip(c, cx, cy, color, glow) {
@@ -151,8 +187,42 @@ export class Player extends Entity {
         c.lineTo(cx, cy - 8);
         c.lineTo(cx - 2, cy - 12);
         c.closePath();
-        c.fillStyle = 'rgba(120,255,150,0.7)';
+        c.fillStyle = 'rgba(120,255,150,0.8)';
         c.fill();
+        // 驾驶舱高光
+        c.save();
+        c.globalAlpha = 0.5;
+        c.beginPath();
+        c.ellipse(cx - 0.3, cy - 16, 0.8, 2, -0.2, 0, Math.PI * 2);
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
+
+        // 高光条（机体上方）
+        c.save();
+        c.globalAlpha = 0.07;
+        c.beginPath();
+        c.moveTo(cx, cy - 24);
+        c.lineTo(cx + 2, cy - 18);
+        c.lineTo(cx + 3, cy - 6);
+        c.lineTo(cx - 3, cy - 6);
+        c.lineTo(cx - 2, cy - 18);
+        c.closePath();
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
+
+        // 面板线
+        c.strokeStyle = 'rgba(255,255,255,0.12)';
+        c.lineWidth = 0.4;
+        c.beginPath(); c.moveTo(cx, cy - 22); c.lineTo(cx, cy + 14); c.stroke();
+        c.beginPath(); c.moveTo(cx - 3, cy - 2); c.lineTo(cx + 3, cy - 2); c.stroke();
+
+        // 铆钉点
+        c.fillStyle = 'rgba(255,255,255,0.25)';
+        for (const [rx, ry] of [[cx-2, cy+4], [cx+2, cy+4], [cx-8, cy-6], [cx+8, cy-6]]) {
+            c.beginPath(); c.arc(rx, ry, 0.5, 0, Math.PI * 2); c.fill();
+        }
     }
 
     _drawHeavyShip(c, cx, cy, color, glow) {
@@ -197,19 +267,58 @@ export class Player extends Entity {
         c.lineTo(cx + 3, cy - 4);
         c.lineTo(cx - 3, cy - 4);
         c.closePath();
-        c.fillStyle = 'rgba(255,180,100,0.7)';
+        const cockpitH = c.createLinearGradient(cx, cy - 12, cx, cy - 4);
+        cockpitH.addColorStop(0, 'rgba(255,220,150,0.85)');
+        cockpitH.addColorStop(0.3, 'rgba(255,200,120,0.7)');
+        cockpitH.addColorStop(1, 'rgba(200,120,60,0.5)');
+        c.fillStyle = cockpitH;
         c.fill();
+        // 驾驶舱高光
+        c.save();
+        c.globalAlpha = 0.45;
+        c.beginPath();
+        c.ellipse(cx - 1, cy - 10, 1.5, 1.8, -0.2, 0, Math.PI * 2);
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
+
+        // 高光条（机体上方）
+        c.save();
+        c.globalAlpha = 0.08;
+        c.beginPath();
+        c.moveTo(cx, cy - 16);
+        c.lineTo(cx + 6, cy - 14);
+        c.lineTo(cx + 10, cy - 8);
+        c.lineTo(cx - 10, cy - 8);
+        c.lineTo(cx - 6, cy - 14);
+        c.closePath();
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
 
         // 武器舱
         c.fillStyle = 'rgba(255,255,255,0.12)';
         c.fillRect(cx + 16, cy + 2, 6, 8);
         c.fillRect(cx - 22, cy + 2, 6, 8);
 
+        // 面板线（中线 + 横线）
+        c.strokeStyle = 'rgba(255,255,255,0.12)';
+        c.lineWidth = 0.4;
+        c.beginPath(); c.moveTo(cx, cy - 14); c.lineTo(cx, cy + 12); c.stroke();
+        c.beginPath(); c.moveTo(cx - 8, cy); c.lineTo(cx + 8, cy); c.stroke();
+        c.beginPath(); c.moveTo(cx - 6, cy + 6); c.lineTo(cx + 6, cy + 6); c.stroke();
+
         // 装甲线
         c.strokeStyle = 'rgba(255,255,255,0.1)';
         c.lineWidth = 0.5;
         c.beginPath(); c.moveTo(cx - 8, cy - 6); c.lineTo(cx - 8, cy + 10); c.stroke();
         c.beginPath(); c.moveTo(cx + 8, cy - 6); c.lineTo(cx + 8, cy + 10); c.stroke();
+
+        // 铆钉点
+        c.fillStyle = 'rgba(255,255,255,0.25)';
+        for (const [rx, ry] of [[cx-4, cy+2], [cx+4, cy+2], [cx-12, cy+4], [cx+12, cy+4], [cx-18, cy+6], [cx+18, cy+6]]) {
+            c.beginPath(); c.arc(rx, ry, 0.7, 0, Math.PI * 2); c.fill();
+        }
     }
 
     update(dt) {
@@ -244,7 +353,7 @@ export class Player extends Entity {
         this.y = Math.max(margin, Math.min(this.game.height - margin, this.y));
 
         this.fireTimer -= dt;
-        if ((input.isShooting() || touchTarget) && this.fireTimer <= 0) {
+        if (this.fireTimer <= 0) {
             this.shoot();
             this.fireTimer = this.fireRate;
         }
@@ -271,45 +380,82 @@ export class Player extends Entity {
         const bx = this.x, by = this.y - 14;
         const dmg = this.bulletDamage;
         const color = this.cfg.color;
+        const fl = this.fireLevel;
 
         if (this.game.audio) this.game.audio.playLaser(this.shipType);
         this.game.particleSystem.createMuzzleFlash(bx, by, color);
 
         if (this.spread) {
-            const angles = [-0.25, -0.12, 0, 0.12, 0.25];
-            const count = Math.min(this.fireLevel + 2, angles.length);
-            const start = Math.floor((angles.length - count) / 2);
-            for (let i = start; i < start + count; i++) {
-                const a = angles[i];
-                this.game.bullets.push(new Bullet(bx, by, Math.sin(a) * 400, -Math.cos(a) * 400, dmg, color, false));
+            // Spread 模式增强: 弹数 = 5 + floor(fireLevel/2)*2，最高 11 发扇形
+            const count = Math.min(5 + Math.floor(fl / 2) * 2, 11);
+            const totalAngle = 0.5 + count * 0.03; // 扇面角度随弹数微增
+            for (let i = 0; i < count; i++) {
+                const a = -totalAngle / 2 + (totalAngle / (count - 1)) * i;
+                this.game.bullets.push(new Bullet(bx, by, Math.sin(a) * 420, -Math.cos(a) * 420, dmg * 0.85, color, false, fl));
             }
         } else {
-            switch (this.fireLevel) {
+            switch (fl) {
                 case 1:
-                    this.game.bullets.push(new Bullet(bx, by, 0, -450, dmg, color, false));
+                    this.game.bullets.push(new Bullet(bx, by, 0, -450, dmg, color, false, fl));
                     break;
                 case 2:
-                    this.game.bullets.push(new Bullet(bx - 6, by, 0, -450, dmg, color, false));
-                    this.game.bullets.push(new Bullet(bx + 6, by, 0, -450, dmg, color, false));
+                    this.game.bullets.push(new Bullet(bx - 6, by, 0, -450, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 6, by, 0, -450, dmg, color, false, fl));
                     break;
                 case 3:
-                    this.game.bullets.push(new Bullet(bx, by, 0, -460, dmg, color, false));
-                    this.game.bullets.push(new Bullet(bx - 10, by + 4, 0, -440, dmg * 0.8, color, false));
-                    this.game.bullets.push(new Bullet(bx + 10, by + 4, 0, -440, dmg * 0.8, color, false));
+                    this.game.bullets.push(new Bullet(bx, by, 0, -460, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 10, by + 4, 0, -440, dmg * 0.8, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 10, by + 4, 0, -440, dmg * 0.8, color, false, fl));
                     break;
                 case 4:
-                    this.game.bullets.push(new Bullet(bx - 5, by, 0, -460, dmg, color, false));
-                    this.game.bullets.push(new Bullet(bx + 5, by, 0, -460, dmg, color, false));
-                    this.game.bullets.push(new Bullet(bx - 14, by + 4, -20, -440, dmg * 0.7, color, false));
-                    this.game.bullets.push(new Bullet(bx + 14, by + 4, 20, -440, dmg * 0.7, color, false));
+                    this.game.bullets.push(new Bullet(bx - 5, by, 0, -460, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 5, by, 0, -460, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 14, by + 4, -20, -440, dmg * 0.7, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 14, by + 4, 20, -440, dmg * 0.7, color, false, fl));
                     break;
-                default:
-                    this.game.bullets.push(new Bullet(bx, by - 2, 0, -480, dmg * 1.2, color, false));
-                    this.game.bullets.push(new Bullet(bx - 8, by, 0, -460, dmg, color, false));
-                    this.game.bullets.push(new Bullet(bx + 8, by, 0, -460, dmg, color, false));
-                    this.game.bullets.push(new Bullet(bx - 16, by + 4, -30, -440, dmg * 0.7, color, false));
-                    this.game.bullets.push(new Bullet(bx + 16, by + 4, 30, -440, dmg * 0.7, color, false));
+                case 5:
+                    this.game.bullets.push(new Bullet(bx, by - 2, 0, -480, dmg * 1.2, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 8, by, 0, -460, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 8, by, 0, -460, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 16, by + 4, -30, -440, dmg * 0.7, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 16, by + 4, 30, -440, dmg * 0.7, color, false, fl));
                     break;
+                case 6:
+                    // 6发: 中央双发 + 两侧各一对斜射
+                    this.game.bullets.push(new Bullet(bx - 4, by, 0, -470, dmg * 1.1, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 4, by, 0, -470, dmg * 1.1, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 12, by + 2, -40, -450, dmg * 0.8, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 12, by + 2, 40, -450, dmg * 0.8, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 20, by + 6, -70, -420, dmg * 0.6, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 20, by + 6, 70, -420, dmg * 0.6, color, false, fl));
+                    break;
+                case 7:
+                    // 8发: 中央三发 + 两侧扇形 + 后方斜射
+                    this.game.bullets.push(new Bullet(bx, by - 2, 0, -490, dmg * 1.3, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 6, by, 0, -470, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 6, by, 0, -470, dmg, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 14, by + 2, -50, -450, dmg * 0.8, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 14, by + 2, 50, -450, dmg * 0.8, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 22, by + 6, -90, -400, dmg * 0.6, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 22, by + 6, 90, -400, dmg * 0.6, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx - 10, by + 10, -120, -300, dmg * 0.5, color, false, fl));
+                    this.game.bullets.push(new Bullet(bx + 10, by + 10, 120, -300, dmg * 0.5, color, false, fl));
+                    break;
+                default: {
+                    // 等级8+: 11-13发全方位密集弹幕，覆盖前方120°扇面
+                    const count = Math.min(11 + (fl - 8) * 2, 13);
+                    const fanAngle = Math.PI * 2 / 3; // 120度
+                    // 中央强化弹
+                    this.game.bullets.push(new Bullet(bx, by - 4, 0, -500, dmg * 1.5, color, false, fl));
+                    for (let i = 0; i < count - 1; i++) {
+                        const a = -fanAngle / 2 + (fanAngle / (count - 2)) * i;
+                        const spd = 460 - Math.abs(a) * 60;
+                        const d = dmg * (1.0 - Math.abs(a) * 0.5);
+                        const ox = Math.sin(a) * 8;
+                        this.game.bullets.push(new Bullet(bx + ox, by + Math.abs(a) * 8, Math.sin(a) * spd, -Math.cos(a) * spd, d, color, false, fl));
+                    }
+                    break;
+                }
             }
         }
     }
@@ -354,15 +500,17 @@ export class Player extends Entity {
         // 发光
         Renderer.drawGlow(ctx, x, y, 35, cfg.glowColor, 0.12);
 
-        // 引擎喷焰（实时绘制）
+        // 引擎喷焰（实时绘制）- 增大 40%
         if (this.shipType === 'heavy') {
-            drawEngineFlame(ctx, x - 7, y + 16, 5, 12 + Math.sin(this.time * 18) * 5, cfg.glowColor);
-            drawEngineFlame(ctx, x + 7, y + 16, 5, 12 + Math.sin(this.time * 18 + 0.5) * 5, cfg.glowColor);
+            drawEngineFlame(ctx, x - 7, y + 16, 7, 17 + Math.sin(this.time * 18) * 7, cfg.glowColor);
+            drawEngineFlame(ctx, x + 7, y + 16, 7, 17 + Math.sin(this.time * 18 + 0.5) * 7, cfg.glowColor);
+            // 中央白色喷焰
+            drawEngineFlame(ctx, x, y + 16, 4, 12 + Math.sin(this.time * 22) * 5, '#ffffff');
         } else if (this.shipType === 'speed') {
-            drawEngineFlame(ctx, x - 2, y + 14, 2.5, 7 + Math.sin(this.time * 25) * 3, cfg.glowColor);
-            drawEngineFlame(ctx, x + 2, y + 14, 2.5, 7 + Math.sin(this.time * 25 + 1) * 3, cfg.glowColor);
+            drawEngineFlame(ctx, x - 2, y + 14, 3.5, 10 + Math.sin(this.time * 25) * 4, cfg.glowColor);
+            drawEngineFlame(ctx, x + 2, y + 14, 3.5, 10 + Math.sin(this.time * 25 + 1) * 4, cfg.glowColor);
         } else {
-            drawEngineFlame(ctx, x, y + 16, 4, 10 + Math.sin(this.time * 20) * 4, cfg.glowColor);
+            drawEngineFlame(ctx, x, y + 16, 5.6, 14 + Math.sin(this.time * 20) * 5.6, cfg.glowColor);
         }
 
         // 缓存的机体精灵
