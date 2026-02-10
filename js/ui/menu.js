@@ -1,5 +1,7 @@
 import { PLAYER_TYPES } from '../data/player-data.js';
+import { CHAPTERS } from '../data/chapter-data.js';
 import { darkenColor } from '../renderer.js';
+import { GameState } from '../game.js';
 
 export class Menu {
     constructor(game) {
@@ -31,6 +33,7 @@ export class Menu {
             <div class="menu-subtitle">-- 星际战机 --</div>
             <button class="menu-btn" id="btn-start">开始游戏</button>
             <button class="menu-btn" id="btn-leaderboard">排行榜</button>
+            <button class="menu-btn" id="btn-achievements" style="background:transparent; border-color:rgba(255,171,0,0.3); color:rgba(255,171,0,0.8);">成就</button>
         `;
 
         ui.appendChild(screen);
@@ -42,6 +45,10 @@ export class Menu {
         document.getElementById('btn-leaderboard').addEventListener('click', () => {
             if (this.game.audio) this.game.audio.playUIClick();
             this.game.uiManager.showLeaderboard();
+        });
+        document.getElementById('btn-achievements').addEventListener('click', () => {
+            if (this.game.audio) this.game.audio.playUIClick();
+            this.showAchievements();
         });
         }); // end _transition
     }
@@ -326,5 +333,82 @@ export class Menu {
             const name = nameInput.value.trim() || 'Player';
             this.game.uiManager.saveAndShowLeaderboard(name, score);
         });
+    }
+
+    showChapterTransition() {
+        const ui = document.getElementById('ui-layer');
+        ui.innerHTML = '';
+
+        const wm = this.game.waveManager;
+        const chapter = CHAPTERS[wm.currentChapter];
+
+        const screen = document.createElement('div');
+        screen.className = 'menu-screen';
+        screen.style.background = 'rgba(0,0,0,0.6)';
+        screen.innerHTML = `
+            <div class="chapter-transition">
+                <div class="chapter-label gameover-stage" style="animation-delay:0s; color:rgba(255,255,255,0.5); font-size:14px; letter-spacing:4px;">CHAPTER ${wm.currentChapter + 1}</div>
+                <div class="chapter-name gameover-stage" style="animation-delay:0.3s; font-size:28px; font-weight:bold; color:#ffffff; margin:8px 0;">${chapter.name}</div>
+                <div class="chapter-name-en gameover-stage" style="animation-delay:0.5s; font-size:14px; color:rgba(255,255,255,0.4); letter-spacing:2px;">${chapter.nameEn}</div>
+                <button class="menu-btn gameover-stage" id="btn-chapter-continue" style="animation-delay:1s; margin-top:30px;">继续</button>
+            </div>
+        `;
+        ui.appendChild(screen);
+
+        if (this.game.effects) {
+            this.game.effects.flash('#ffffff', 0.3);
+            const themeColor = chapter.theme.bg.bottom;
+            this.game.effects.borderGlow(themeColor, 2);
+        }
+
+        document.getElementById('btn-chapter-continue').addEventListener('click', () => {
+            if (this.game.audio) this.game.audio.playUIClick();
+            ui.innerHTML = '';
+            this.game.chapterTransitionTimer = 3.0; // 立即结束过渡
+        });
+    }
+
+    showAchievements() {
+        this._transition(() => {
+        const ui = document.getElementById('ui-layer');
+        ui.innerHTML = '';
+
+        const pm = this.game.progressManager;
+        if (!pm) return;
+
+        const screen = document.createElement('div');
+        screen.className = 'menu-screen';
+
+        let html = '<div class="menu-title" style="font-size:22px;">成就</div>';
+        html += '<div style="width:100%; max-width:320px; margin:0 auto;">';
+
+        const milestones = pm.getMilestones();
+        for (const m of milestones) {
+            const unlocked = pm.isUnlocked(m.id);
+            const opacity = unlocked ? '1' : '0.4';
+            const icon = unlocked ? '&#9733;' : '&#9734;';
+            const color = unlocked ? '#ffab00' : 'rgba(255,255,255,0.3)';
+            html += `
+                <div style="display:flex; align-items:center; padding:8px 12px; margin:4px 0; background:rgba(255,255,255,0.05); border-radius:6px; opacity:${opacity};">
+                    <span style="font-size:20px; color:${color}; margin-right:10px;">${icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:13px; font-weight:bold; color:#ffffff;">${m.name}</div>
+                        <div style="font-size:11px; color:rgba(255,255,255,0.5);">${unlocked ? m.reward : m.condition}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        html += '<button class="menu-btn" id="btn-ach-back" style="margin-top:12px; background:transparent; border-color:rgba(255,255,255,0.15); color:rgba(255,255,255,0.5);">返回</button>';
+
+        screen.innerHTML = html;
+        ui.appendChild(screen);
+
+        document.getElementById('btn-ach-back').addEventListener('click', () => {
+            if (this.game.audio) this.game.audio.playUIClick();
+            this.showMainMenu();
+        });
+        }); // end _transition
     }
 }

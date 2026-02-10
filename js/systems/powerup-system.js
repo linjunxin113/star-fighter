@@ -75,7 +75,7 @@ export class PowerUpSystem {
                 break;
             case 'shield':
                 player.shield = true;
-                player.shieldTimer = powerup.duration;
+                player.shieldTimer = powerup.duration + (player.shieldDurationBonus || 0);
                 break;
             case 'bomb':
                 this._clearScreen();

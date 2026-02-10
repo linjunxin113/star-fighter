@@ -5,6 +5,7 @@ export const GameState = {
     PLAYING: 'playing',
     PAUSED: 'paused',
     BOSS_INTRO: 'boss_intro',
+    CHAPTER_TRANSITION: 'chapter_transition',
     DEATH_SEQUENCE: 'death_sequence',
     GAME_OVER: 'game_over',
     LEADERBOARD: 'leaderboard'
@@ -57,6 +58,9 @@ export class Game {
         this.deathSequenceTimer = 0;
         this.deathSequenceDuration = 2.5;
 
+        // Chapter transition
+        this.chapterTransitionTimer = 0;
+
         this.resize();
         window.addEventListener('resize', () => this.resize());
     }
@@ -107,8 +111,35 @@ export class Game {
         const { Player } = this._playerModule;
         this.player = new Player(this, shipType);
 
+        // 应用解锁加成
+        if (this.progressManager) {
+            const bonus = this.progressManager.getActiveBonus();
+            if (bonus.startFireLevel > 0) {
+                this.player.fireLevel = Math.min(this.player.fireLevel + bonus.startFireLevel, this.player.maxFireLevel);
+            }
+            if (bonus.maxHpBonus > 0) {
+                this.player.maxHp += bonus.maxHpBonus;
+                this.player.hp += bonus.maxHpBonus;
+            }
+            if (bonus.damageMultiplier > 1) {
+                this.player.bulletDamage = Math.ceil(this.player.bulletDamage * bonus.damageMultiplier);
+            }
+            if (bonus.magnetRangeMultiplier > 1) {
+                this.player.magnetRange = Math.floor(this.player.magnetRange * bonus.magnetRangeMultiplier);
+            }
+            if (bonus.shieldDurationBonus > 0) {
+                this.player.shieldDurationBonus = bonus.shieldDurationBonus;
+            }
+        }
+
         // 重置系统
         this.scoreSystem.reset();
+        if (this.progressManager) {
+            const bonus = this.progressManager.getActiveBonus();
+            if (bonus.scoreMultiplier > 1) {
+                this.scoreSystem.bonusMultiplier = bonus.scoreMultiplier;
+            }
+        }
         this.waveManager.reset();
         this.powerupSystem.reset();
 
@@ -236,7 +267,29 @@ export class Game {
             this.background.update(dt);
             this.particleSystem.update(dt);
             if (this.deathSequenceTimer >= this.deathSequenceDuration) {
+                // 记录进度 + 检查解锁
+                if (this.progressManager) {
+                    const wave = this.waveManager.currentWave;
+                    const score = this.scoreSystem.score;
+                    const newUnlocks = this.progressManager.onGameEnd(wave, score);
+                    if (newUnlocks.length > 0 && this.uiManager && this.uiManager.hud) {
+                        for (const unlock of newUnlocks) {
+                            this.uiManager.hud.showUnlockToast(unlock.name, unlock.reward);
+                        }
+                    }
+                }
                 this.setState(GameState.GAME_OVER);
+            }
+        }
+
+        // Chapter transition update
+        if (this.state === GameState.CHAPTER_TRANSITION) {
+            this.background.update(dt);
+            this.particleSystem.update(dt);
+            this.chapterTransitionTimer += dt;
+            if (this.chapterTransitionTimer >= 3.0) {
+                this.setState(GameState.PLAYING);
+                this.waveManager._startWave();
             }
         }
     }
@@ -304,14 +357,27 @@ export class Game {
             }
             // vs Boss
             if (b.alive && this.boss && this.boss.alive) {
-                if (checkAABB(b, this.boss)) {
-                    this.boss.hp -= b.damage;
-                    b.alive = false;
-                    this.particleSystem.createHitSpark(b.x, b.y);
-                    if (this.boss.hp <= 0) {
-                        this.boss.alive = false;
-                    } else if (this.effects) {
-                        this.effects.hitStop(0.03);
+                // 瞬移期间跳过碰撞
+                if (!this.boss.teleporting) {
+                    if (checkAABB(b, this.boss)) {
+                        if (this.boss.shielded) {
+                            // 护盾反弹特效
+                            b.alive = false;
+                            this.particleSystem.createHitSpark(b.x, b.y);
+                            if (this.effects) {
+                                this.effects.flash('#40c4ff', 0.1);
+                            }
+                        } else {
+                            this.boss.hp -= b.damage;
+                            this.boss.hitFlash = 0.1;
+                            b.alive = false;
+                            this.particleSystem.createHitSpark(b.x, b.y);
+                            if (this.boss.hp <= 0) {
+                                this.boss.alive = false;
+                            } else if (this.effects) {
+                                this.effects.hitStop(0.03);
+                            }
+                        }
                     }
                 }
             }
@@ -344,7 +410,7 @@ export class Game {
             }
 
             // Boss 碰撞
-            if (this.boss && this.boss.alive && checkAABB(this.boss, this.player)) {
+            if (this.boss && this.boss.alive && !this.boss.teleporting && checkAABB(this.boss, this.player)) {
                 this.player.takeDamage(2);
             }
         }
@@ -366,7 +432,7 @@ export class Game {
 
         if (this.state === GameState.PLAYING || this.state === GameState.BOSS_INTRO ||
             this.state === GameState.PAUSED || this.state === GameState.GAME_OVER ||
-            this.state === GameState.DEATH_SEQUENCE) {
+            this.state === GameState.DEATH_SEQUENCE || this.state === GameState.CHAPTER_TRANSITION) {
 
             // 道具
             this.powerupSystem.render(ctx);

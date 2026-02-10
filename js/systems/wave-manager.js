@@ -2,6 +2,8 @@ import { Enemy } from '../entities/enemy.js';
 import { Boss } from '../entities/boss.js';
 import { WAVE_DATA } from '../data/wave-data.js';
 import { BOSS_DATA } from '../data/boss-data.js';
+import { CHAPTERS, TOTAL_WAVES, getChapterForWave } from '../data/chapter-data.js';
+import { GameState } from '../game.js';
 
 export class WaveManager {
     constructor(game) {
@@ -16,6 +18,8 @@ export class WaveManager {
         this.announcing = false;
         this.difficultyScale = 1;
         this.waveClearShown = false;
+        this.currentChapter = 0;
+        this.pendingChapterTransition = false;
     }
 
     reset() {
@@ -27,24 +31,48 @@ export class WaveManager {
         this.waveAnnounceTimer = 0;
         this.announcing = false;
         this.difficultyScale = 1;
+        this.currentChapter = 0;
+        this.pendingChapterTransition = false;
+        // 设置初始主题
+        if (this.game.background) {
+            this.game.background.setTheme(CHAPTERS[0].theme, 0);
+        }
         this._startWave();
     }
 
     _startWave() {
-        const waveIndex = this.currentWave % WAVE_DATA.length;
+        const waveIndex = this.currentWave % TOTAL_WAVES;
         const wave = WAVE_DATA[waveIndex];
-        // 每轮循环增加难度
-        const loop = Math.floor(this.currentWave / WAVE_DATA.length);
-        this.difficultyScale = 1 + loop * 0.3;
+        // 30 波一循环
+        const loop = Math.floor(this.currentWave / TOTAL_WAVES);
+        this.difficultyScale = 1 + loop * 0.25;
+
+        // 章节检测
+        const newChapter = getChapterForWave(this.currentWave);
+        if (newChapter !== this.currentChapter && this.currentWave > 0) {
+            // 章节切换 -> 过渡画面
+            this.currentChapter = newChapter;
+            const chapter = CHAPTERS[newChapter];
+            this.game.background.setTheme(chapter.theme, 2);
+            this.game.chapterTransitionTimer = 0;
+            this.game.setState(GameState.CHAPTER_TRANSITION);
+            if (this.game.effects) {
+                this.game.effects.flash('#ffffff', 0.5);
+                this.game.effects.borderGlow(chapter.theme.bg.bottom, 2);
+            }
+            return; // _startWave 会在过渡结束后被 game.js 再次调用
+        }
+        this.currentChapter = newChapter;
 
         this.announcing = true;
         this.waveAnnounceTimer = 1.5;
 
         if (wave.boss) {
-            // Boss 波
             const bossKey = wave.boss;
             const bossData = { ...BOSS_DATA[bossKey] };
             bossData.hp = Math.floor(bossData.hp * this.difficultyScale);
+            bossData.mechanics = BOSS_DATA[bossKey].mechanics || [];
+            bossData.phases = BOSS_DATA[bossKey].phases;
             const boss = new Boss(this.game, bossData);
             this.game.startBossIntro(boss);
             if (this.game.audio) {
@@ -54,7 +82,6 @@ export class WaveManager {
             this.waveActive = true;
             this.spawnQueue = [];
         } else {
-            // 普通波
             this.spawnQueue = [];
             for (const group of wave.groups) {
                 for (let i = 0; i < group.count; i++) {
@@ -124,7 +151,6 @@ export class WaveManager {
 
         // 检查波次完成
         if (this.spawnQueue.length === 0 && this.game.enemies.length === 0) {
-            // Wave clear celebration (once)
             if (!this.waveClearShown) {
                 this.waveClearShown = true;
                 if (this.game.uiManager && this.game.uiManager.hud) {
@@ -133,7 +159,6 @@ export class WaveManager {
                         'WAVE CLEAR!', '#4caf50', 22
                     );
                 }
-                // Celebration particles
                 const cx = this.game.width / 2;
                 const cy = this.game.height * 0.4;
                 this.game.particleSystem.createPickupEffect(cx, cy, '#4caf50');
@@ -154,6 +179,19 @@ export class WaveManager {
 
     getWaveNumber() {
         return this.currentWave + 1;
+    }
+
+    getChapterName() {
+        return CHAPTERS[this.currentChapter].name;
+    }
+
+    getChapterNameEn() {
+        return CHAPTERS[this.currentChapter].nameEn;
+    }
+
+    getWaveInChapter() {
+        const waveIndex = this.currentWave % TOTAL_WAVES;
+        return waveIndex - CHAPTERS[this.currentChapter].waveStart + 1;
     }
 
     isAnnouncing() {

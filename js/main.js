@@ -8,6 +8,7 @@ import { ParticleSystem } from './particle.js';
 import { UIManager } from './ui/ui-manager.js';
 import { ScreenEffects } from './effects.js';
 import { AudioSystem } from './systems/audio.js';
+import { ProgressManager } from './systems/progress-manager.js';
 import * as CollisionModule from './collision.js';
 import * as BulletModule from './entities/bullet.js';
 import * as PlayerModule from './entities/player.js';
@@ -30,6 +31,7 @@ game.powerupSystem = new PowerUpSystem(game);
 game.particleSystem = new ParticleSystem(game);
 game.effects = new ScreenEffects();
 game.audio = new AudioSystem();
+game.progressManager = new ProgressManager();
 game.uiManager = new UIManager(game);
 
 // 用户手势解锁音频

@@ -7,6 +7,7 @@ export class ScoreSystem {
         this.comboDuration = 2.0; // 2秒内连续击杀保持连击
         this.maxCombo = 0;
         this.multiplier = 1;
+        this.bonusMultiplier = 1; // 解锁加成倍率
     }
 
     reset() {
@@ -23,11 +24,11 @@ export class ScoreSystem {
         this.multiplier = 1 + Math.floor(this.combo / 5) * 0.5;
         if (this.multiplier > 5) this.multiplier = 5;
         if (this.combo > this.maxCombo) this.maxCombo = this.combo;
-        this.score += Math.floor(baseScore * this.multiplier);
+        this.score += Math.floor(baseScore * this.multiplier * this.bonusMultiplier);
     }
 
     addScore(points) {
-        this.score += points;
+        this.score += Math.floor(points * this.bonusMultiplier);
     }
 
     update(dt) {

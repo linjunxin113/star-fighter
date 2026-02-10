@@ -1,3 +1,5 @@
+import { CHAPTERS } from '../data/chapter-data.js';
+
 export class Background {
     constructor(game) {
         this.game = game;
@@ -10,12 +12,51 @@ export class Background {
         this.time = 0;
         this.speedMultiplier = 1;
 
+        // 主题系统
+        this.theme = CHAPTERS[0].theme;
+        this._currentBg = { ...this.theme.bg };
+        this._targetBg = { ...this.theme.bg };
+        this._transitionTimer = 0;
+        this._transitionDuration = 0;
+
         this._initStars();
         this._initNebulas();
     }
 
+    setTheme(theme, duration = 2) {
+        this.theme = theme;
+        this._targetBg = { ...theme.bg };
+        this._transitionTimer = duration;
+        this._transitionDuration = duration;
+        // 更新星云颜色（立即替换，视觉上不突兀）
+        for (let i = 0; i < this.nebulas.length && i < theme.nebulas.length; i++) {
+            this.nebulas[i].colors = theme.nebulas[i];
+        }
+        // 更新近景星颜色
+        for (const s of this.nearStars) {
+            s.color = theme.starColors[Math.floor(Math.random() * theme.starColors.length)];
+        }
+    }
+
+    _lerpColor(a, b, t) {
+        // 解析 hex 颜色并插值
+        const pa = this._parseHex(a);
+        const pb = this._parseHex(b);
+        if (!pa || !pb) return b;
+        const r = Math.round(pa.r + (pb.r - pa.r) * t);
+        const g = Math.round(pa.g + (pb.g - pa.g) * t);
+        const bl = Math.round(pa.b + (pb.b - pa.b) * t);
+        return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+    }
+
+    _parseHex(hex) {
+        const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
+    }
+
     _initStars() {
         const w = 500, h = 1000;
+        const starColors = this.theme.starColors;
         // 远景星 - 小而暗，慢速
         for (let i = 0; i < 60; i++) {
             this.farStars.push({
@@ -43,25 +84,20 @@ export class Background {
                 size: 1.5 + Math.random() * 2,
                 speed: 40 + Math.random() * 30,
                 alpha: 0.6 + Math.random() * 0.4,
-                color: ['#ffffff', '#aaccff', '#ffddaa', '#aaffee'][Math.floor(Math.random() * 4)],
+                color: starColors[Math.floor(Math.random() * starColors.length)],
             });
         }
     }
 
     _initNebulas() {
-        const colors = [
-            { inner: 'rgba(30,60,180,0.04)', outer: 'rgba(20,40,120,0.02)' },
-            { inner: 'rgba(120,20,160,0.04)', outer: 'rgba(80,10,100,0.02)' },
-            { inner: 'rgba(20,140,100,0.03)', outer: 'rgba(10,80,60,0.015)' },
-            { inner: 'rgba(160,40,40,0.03)', outer: 'rgba(100,20,20,0.015)' },
-        ];
+        const nebulaColors = this.theme.nebulas;
         for (let i = 0; i < 4; i++) {
             this.nebulas.push({
                 x: Math.random() * 500,
                 y: Math.random() * 1000,
                 r: 100 + Math.random() * 150,
                 speed: 6 + Math.random() * 10,
-                colors: colors[i],
+                colors: nebulaColors[i],
                 phase: Math.random() * Math.PI * 2,
                 deformSpeed: 0.3 + Math.random() * 0.4,
             });
@@ -72,19 +108,15 @@ export class Background {
         if (this.planets.length >= 1 || Math.random() > 0.0008) return;
         const w = this.game.width;
         const r = 30 + Math.random() * 50;
-        const colors = [
-            { base: '#2a4a7a', light: '#4a7aba', ring: 'rgba(100,160,255,0.15)' },
-            { base: '#7a3a2a', light: '#ba6a4a', ring: 'rgba(255,140,100,0.12)' },
-            { base: '#3a6a4a', light: '#5aaa6a', ring: 'rgba(100,255,140,0.1)' },
-            { base: '#6a4a7a', light: '#9a6aba', ring: null },
-        ];
+        const colors = this.theme.planetColors;
         const c = colors[Math.floor(Math.random() * colors.length)];
         this.planets.push({
             x: r + Math.random() * (w - r * 2),
             y: -r * 2,
             r,
             speed: 3 + Math.random() * 5,
-            ...c,
+            base: c.base,
+            light: c.light,
             hasRing: c.ring !== null && Math.random() > 0.4,
             ringColor: c.ring,
             rotation: Math.random() * Math.PI,
@@ -110,6 +142,19 @@ export class Background {
         const w = this.game.width;
         const h = this.game.height;
         const sm = this.speedMultiplier;
+
+        // 主题过渡插值
+        if (this._transitionTimer > 0) {
+            this._transitionTimer -= dt;
+            const t = 1 - Math.max(0, this._transitionTimer) / this._transitionDuration;
+            this._currentBg.top = this._lerpColor(this._currentBg.top, this._targetBg.top, Math.min(1, t * 0.05 + 0.02));
+            this._currentBg.mid1 = this._lerpColor(this._currentBg.mid1, this._targetBg.mid1, Math.min(1, t * 0.05 + 0.02));
+            this._currentBg.mid2 = this._lerpColor(this._currentBg.mid2, this._targetBg.mid2, Math.min(1, t * 0.05 + 0.02));
+            this._currentBg.bottom = this._lerpColor(this._currentBg.bottom, this._targetBg.bottom, Math.min(1, t * 0.05 + 0.02));
+            if (this._transitionTimer <= 0) {
+                this._currentBg = { ...this._targetBg };
+            }
+        }
 
         const updateLayer = (stars) => {
             for (const s of stars) {
@@ -151,13 +196,14 @@ export class Background {
     render(ctx) {
         const w = this.game.width;
         const h = this.game.height;
+        const bg = this._currentBg;
 
         // 背景渐变
         const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, '#040610');
-        grad.addColorStop(0.3, '#080c1a');
-        grad.addColorStop(0.7, '#0a0e20');
-        grad.addColorStop(1, '#0c1028');
+        grad.addColorStop(0, bg.top);
+        grad.addColorStop(0.3, bg.mid1);
+        grad.addColorStop(0.7, bg.mid2);
+        grad.addColorStop(1, bg.bottom);
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
 

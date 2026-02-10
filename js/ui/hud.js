@@ -9,6 +9,7 @@ export class HUD {
         this.bossDisplayHp = 1;
         this.prevCombo = 0;
         this.prevHp = -1;
+        this.unlockToast = null;
     }
 
     addFloatingText(x, y, text, color = '#ffffff', size = 16) {
@@ -16,6 +17,13 @@ export class HUD {
             x, y, text, color, size,
             vy: -60, life: 1.0, maxLife: 1.0
         });
+    }
+
+    showUnlockToast(name, desc) {
+        this.unlockToast = { name, desc, timer: 3.0, maxTimer: 3.0 };
+        if (this.game.effects) {
+            this.game.effects.borderGlow('#ffab00', 2);
+        }
     }
 
     update(dt) {
@@ -72,6 +80,12 @@ export class HUD {
             ft.life -= dt;
             if (ft.life <= 0) this.floatingTexts.splice(i, 1);
         }
+
+        // Unlock toast
+        if (this.unlockToast) {
+            this.unlockToast.timer -= dt;
+            if (this.unlockToast.timer <= 0) this.unlockToast = null;
+        }
     }
     render(ctx) {
         const game = this.game;
@@ -114,12 +128,14 @@ export class HUD {
             ctx.restore();
         }
 
-        // Wave (top-right)
+        // Wave (top-right) - 章节名 + 章内波次
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.font = '12px "Segoe UI", system-ui, sans-serif';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'top';
-        ctx.fillText(`WAVE ${game.waveManager.getWaveNumber()}`, w - padding, padding + 30);
+        const chapterName = game.waveManager.getChapterName();
+        const waveInChapter = game.waveManager.getWaveInChapter();
+        ctx.fillText(`${chapterName} W-${waveInChapter}`, w - padding, padding + 30);
         // HP (bottom-left) - rounded rects with glow
         const hpY = game.height - padding - 20;
         const hpShakeOff = this.hpShakeTimer > 0 ? (Math.random() - 0.5) * 4 : 0;
@@ -194,7 +210,9 @@ export class HUD {
             const timer = game.waveManager.waveAnnounceTimer;
             const alpha = Math.min(1, timer);
             const isBoss = game.boss !== null;
-            const text = isBoss ? 'WARNING' : `WAVE ${game.waveManager.getWaveNumber()}`;
+            const chName = game.waveManager.getChapterName();
+            const wInCh = game.waveManager.getWaveInChapter();
+            const text = isBoss ? 'WARNING' : `${chName} - WAVE ${wInCh}`;
             const textColor = isBoss ? '#ff3d00' : '#ffffff';
 
             ctx.save();
@@ -252,6 +270,58 @@ export class HUD {
             ctx.shadowColor = ft.color;
             ctx.shadowBlur = 4;
             ctx.fillText(ft.text, 0, 0);
+            ctx.restore();
+        }
+
+        // Unlock toast notification
+        if (this.unlockToast) {
+            const toast = this.unlockToast;
+            const elapsed = toast.maxTimer - toast.timer;
+            // Slide in from top (0-0.3s), stay (0.3-2.5s), slide out (2.5-3.0s)
+            let slideY;
+            if (elapsed < 0.3) {
+                slideY = -50 + 50 * (elapsed / 0.3);
+            } else if (toast.timer < 0.5) {
+                slideY = 50 * (toast.timer / 0.5) - 50;
+            } else {
+                slideY = 0;
+            }
+            ctx.save();
+            ctx.translate(0, slideY);
+            const toastW = 240;
+            const toastH = 44;
+            const toastX = (w - toastW) / 2;
+            const toastY = padding + 50;
+            // Background
+            ctx.fillStyle = 'rgba(40,30,0,0.85)';
+            ctx.strokeStyle = '#ffab00';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            const tr = 8;
+            ctx.moveTo(toastX + tr, toastY);
+            ctx.lineTo(toastX + toastW - tr, toastY);
+            ctx.quadraticCurveTo(toastX + toastW, toastY, toastX + toastW, toastY + tr);
+            ctx.lineTo(toastX + toastW, toastY + toastH - tr);
+            ctx.quadraticCurveTo(toastX + toastW, toastY + toastH, toastX + toastW - tr, toastY + toastH);
+            ctx.lineTo(toastX + tr, toastY + toastH);
+            ctx.quadraticCurveTo(toastX, toastY + toastH, toastX, toastY + toastH - tr);
+            ctx.lineTo(toastX, toastY + tr);
+            ctx.quadraticCurveTo(toastX, toastY, toastX + tr, toastY);
+            ctx.fill();
+            ctx.stroke();
+            // Star icon
+            ctx.fillStyle = '#ffab00';
+            ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('\u2605', toastX + 10, toastY + toastH / 2);
+            // Text
+            ctx.fillStyle = '#ffab00';
+            ctx.font = 'bold 12px "Segoe UI", system-ui, sans-serif';
+            ctx.fillText(toast.name, toastX + 30, toastY + 14);
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+            ctx.fillText(toast.desc, toastX + 30, toastY + 30);
             ctx.restore();
         }
 

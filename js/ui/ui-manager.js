@@ -47,6 +47,9 @@ export class UIManager {
             case GameState.BOSS_INTRO:
                 ui.innerHTML = '';
                 break;
+            case GameState.CHAPTER_TRANSITION:
+                this.menu.showChapterTransition();
+                break;
             case GameState.DEATH_SEQUENCE:
                 ui.innerHTML = '';
                 break;
@@ -71,7 +74,7 @@ export class UIManager {
     }
 
     renderHUD(ctx) {
-        if (this.game.state === GameState.PLAYING || this.game.state === GameState.BOSS_INTRO) {
+        if (this.game.state === GameState.PLAYING || this.game.state === GameState.BOSS_INTRO || this.game.state === GameState.CHAPTER_TRANSITION) {
             this.hud.render(ctx);
         }
     }
